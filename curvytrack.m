@@ -99,7 +99,7 @@ veh.z        = 0.4*ones( size(veh.x) );
 %% Magnetometer positions
 
 
-magn.s      = 30:1:30.5; % it determines also the number of couples of magnetometers 
+magn.s      = 30:1:39; % it determines also the number of couples of magnetometers 
 magn.line_n = [2 -2];
 magn.n      = magn.line_n'*ones(1,length(magn.s)); % use it as magn(1,:) etc
 magn.xi     = zeros(1,length(magn.s));
