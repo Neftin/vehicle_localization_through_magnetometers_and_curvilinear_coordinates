@@ -25,6 +25,7 @@
 close all;
 clear all; 
 addpath(genpath('../library'));
+addpath(genpath(pwd));
 rng('default')
 % states:
 % [ u , s , n , xi , ms , mn , mz , D , z ]
@@ -74,7 +75,7 @@ t        = 0;
 while( veh.s(end) < road.len )
     veh.v(end+1)   = veh.v(1) + 2*sin( 1*pi*(t(end)/veh.Tsin) );
     veh.s(end+1)   = veh.v(end)*ts + veh.s(end);
-    veh.n(end+1)   = 1 + 0.5*sin(2*pi*(t(end)/veh.Tsin));
+    veh.n(end+1)   = 1.5*sin(2*pi*(t(end)/veh.Tsin));
     veh.xi(end+1)  = atan2( veh.n(end) - veh.n(end-1) , veh.s(end) - veh.s(end-1) ); % !!! VERIFICA
     t(end+1)       = t(end)+ts;
 end
@@ -97,7 +98,8 @@ veh.z        = 0.4*ones( size(veh.x) );
 
 %% Magnetometer positions
 
-magn.s      = 30:4:46; % it determines also the number of couples of magnetometers 
+
+magn.s      = 30:1:35; % it determines also the number of couples of magnetometers 
 magn.line_n = [2 -2];
 magn.n      = magn.line_n'*ones(1,length(magn.s)); % use it as magn(1,:) etc
 magn.xi     = zeros(1,length(magn.s));
@@ -147,6 +149,9 @@ end
 
 %% simulate measures
 % compute measures -> simulation
+
+xTrue = zeros(9,length(t));
+
 for k=1:length(t)
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -179,7 +184,9 @@ for k=1:length(t)
     % TEST function of the multiple sensor
     %%%%%%%%%%%%%%%%%%%%%%
     
-    X_true    = [ veh.v(k) , veh.s(k) , veh.n(k) , veh.xi(k) , veh.m0' , veh.D , veh.z(k) ]';
+    X_true     = [ veh.v(k) , veh.s(k) , veh.n(k) , veh.xi(k) , veh.m0' , veh.D , veh.z(k) ]';
+    
+    xTrue(:,k) = X_true;
     
     % this step is important has to be formalized !!!
     tmp        = [ magn.s ; magn.s ];
@@ -208,7 +215,7 @@ end
 
 %% filtering parameters
 
-Qinit = diag( [ 5     , 5   , 2   , 0.01    , 50 , 50 , 50 , 0.1 , 0.1  ].^2 ); % Error on initial conditions
+Qinit = diag( [ 5     , 5   , 2   , 0.01    , 500 , 500 , 500 , 0.1 , 0.1  ].^2 ); % Error on initial conditions
 Q     = diag( [ 1*ts , 0.1 , 0.1 ,   0.5*ts  , 50 , 50 , 50 , 0.1 , 0.01 ].^2 ); % Q additive
 R     = ( 12*10^-3 ).^2*eye(magn.N*3);
 
@@ -236,6 +243,7 @@ zV     = zeros(n_z,length(rng_flt));
 zRes   = zeros(n_z,length(rng_flt));
 xRes   = zeros(n_x,length(rng_flt));
 zPred  = zeros(n_z,length(rng_flt));
+xPred  = zeros(n_x,length(rng_flt));
 
 disp('filtering')
 
@@ -284,6 +292,7 @@ for k=1:length(rng_flt)
     kV{k}       = export.K;                     % save kalman gains
     zPred(:,k)  = export.zPred;                 % save zPred
     xRes(:,k)   = export.xRes;
+    xPred(:,k)  = xpred;
   
 end
 
@@ -302,10 +311,12 @@ grid on;
 hold on;
 
 figure(1)
-decimation = 50;
-[ final_traj.x , final_traj.y , final_traj.th ] = curvy_road.xypsi_by_snxi( xV(2:4,1:decimation:end) );
-quiver(final_traj.x,final_traj.y,1*cos(final_traj.th),1*sin(final_traj.th),'red');
-plot(veh.x(1:decimation:end),veh.y(1:decimation:end),'blue');
+decimation = 20;
+[ final_traj.x , final_traj.y , final_traj.th ] = curvy_road.xypsi_by_snxi( xV(2:4,:) );
+quiver(final_traj.x(1:decimation:end),final_traj.y(1:decimation:end),1*cos(final_traj.th(1:decimation:end)),...
+    1*sin(final_traj.th(1:decimation:end)),'color',[ .4 0 .2 ]);
+plot(final_traj.x,final_traj.y,'red','LineWidth',2)
+plot(veh.x(1:decimation:end),veh.y(1:decimation:end),'blue:','LineWidth',2);
 plot(magn.x,magn.y,'blackx');
 hold off;
 
@@ -364,8 +375,16 @@ title('Norm of column vector of the n-column of Kalman gain')
 xlabel('samples')
 hold off;
 
+%% other analisys
 
+state_examined = 5;
 
+angle_diff_pred = xTrue(state_examined,rng_flt) - xPred(state_examined,:);
+angle_diff_corr = xTrue(state_examined,rng_flt) - xV(state_examined,:);
+
+figure(6)
+plot( [angle_diff_pred; angle_diff_corr]' );
+legend([ 'error of state: ' num2str(state_examined) ' in prediction' ],[ 'error of state: ' num2str(state_examined) ' in estimation' ]);
 
 
 

@@ -107,7 +107,7 @@ function [ y , Y , P , Y1 ] = ut( f , X , Wm , Wc , n , R , params )
 
         Y(:,k) = f( X(:,k) , params );  % In case of the model it is X+ the output, for measure is Y
 
-        %y = y + Wm(k)*Y(:,k);           % transformed mean -> sum(Wm) = 1
+        y = y + Wm(k)*Y(:,k);           % transformed mean -> sum(Wm) = 1
 
     end
     

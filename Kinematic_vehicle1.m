@@ -15,9 +15,9 @@ Ts = params.ts;   % sampling time
 X(1)   = u;              % + noise here
 X(2)   = s + Ts*u;
 X(3)   = Ts*xi*u + n;
-% various model yaw rate
-X(4)   = xi;          % yaw rate = +ku -> il veicolo ha yaw rate esatto per rimanere allineato alla strada
-%X(4)   = xi- Ts*k*u; % free flowing -> il veicolo va "per campi"
+% various model yaw rate:
+X(4)   = xi;          % yaw rate = +ku -> il veicolo ha yaw rate esatto per rimanere allineato alla strada (+ rumore)
+% X(4)   = xi - Ts*k*u; % free flowing -> il veicolo va "per campi"
 
 X(5:7) = Xprec(5:7);        % + noise
 X(8)   = Xprec(8);          % + noise
