@@ -99,7 +99,7 @@ veh.z        = 0.4*ones( size(veh.x) );
 %% Magnetometer positions
 
 
-magn.s      = 30:1:35; % it determines also the number of couples of magnetometers 
+magn.s      = 30:1:30.5; % it determines also the number of couples of magnetometers 
 magn.line_n = [2 -2];
 magn.n      = magn.line_n'*ones(1,length(magn.s)); % use it as magn(1,:) etc
 magn.xi     = zeros(1,length(magn.s));
@@ -222,7 +222,7 @@ R     = ( 12*10^-3 ).^2*eye(magn.N*3);
 %% Filtering
 
 % filtering only around the magnetometer region
-rng_flt = find( veh.s > ( min(magn.s) -2 ) & veh.s < ( max(magn.s) +5 ) );
+rng_flt = find( veh.s > ( min(magn.s) +0 ) & veh.s < ( max(magn.s) +5 ) );
 
 
 % DEBUG QUANTITIES !!!
@@ -230,7 +230,7 @@ sample_of_a_sampling    = zeros(2,9,length( rng_flt )); % contains diagonl eleme
 the_values_of_a_warrior = zeros(9,length( rng_flt ));   % eigenvalues of prediction covariance.
 
 % initial states:
-x_init = [ 10 , ( min(magn.s) -2 + 0.5*randn(1) ) , 1 , 0 ,  -150 , 80 , -150 , 1 , 0.3 ];
+x_init = [ 10 , ( min(magn.s) -0 + 0.1*randn(1) ) , 1 , 0 ,  -150 , 80 , -150 , 1 , 0.3 ];
 
 n_x = length(x_init);
 n_z = magn.N*3;
@@ -377,10 +377,11 @@ hold off;
 
 %% other analisys
 
-state_examined = 5;
+state_examined = 8;
 
 angle_diff_pred = xTrue(state_examined,rng_flt) - xPred(state_examined,:);
 angle_diff_corr = xTrue(state_examined,rng_flt) - xV(state_examined,:);
+grid minor
 
 figure(6)
 plot( [angle_diff_pred; angle_diff_corr]' );

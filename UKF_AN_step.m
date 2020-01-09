@@ -27,7 +27,7 @@ function [ x , x_pred , P , P_pred , export ] = UKF_AN_step( fstate , x , P , hm
 
     m = numel(z);                               % numer of measurements
 
-    alpha = 0.001;                              % default, tunable
+    alpha = .001;                              % default, tunable
 
     ki = 0;                                    % default, tunable
 
@@ -111,8 +111,8 @@ function [ y , Y , P , Y1 ] = ut( f , X , Wm , Wc , n , R , params )
 
     end
     
-    y = Y(:,1); % !!! TOGLI 
-
+    %y = Y(:,1); % !!! FIXED mean -> NOT UT mean !!! PROBLEM
+    %y = mean(Y(:,2:end),2);
 
     Y1 = Y - y(:)*ones(1,L);          % create vector L times the vector y
 
