@@ -8,7 +8,7 @@ $$ \left \lbrace \array{ u^+ = u \\ s^+ = s + T_su \\ n^+ = n + T_s\xi u \\ \xi^
 
 $$ \left \lbrace \array{ u^+ = u \\ s^+ = s + T_su \\ n^+ = n + T_s\xi u \\ \xi^+ = \xi  \\ m_s^+ = m_s \\ m_n^+ = m_n \\ m_z^+ = m_z \\ D^+ = D \\ z^+ = z } \right \rbrace $$
 
-## measure model ##
+## measure model0 ##
 
  $$ \left[ \begin {array}{c} {\it B0x}+1/4\,{\frac {\mu_{0}\, \left(  3.0
 \,s \left( t \right) - 3.0\,s_{0}- \left(  \left(  \left| -s \left( t

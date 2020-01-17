@@ -50,43 +50,46 @@ curvy_road = curvilinear_arcs_trajectory( road.ds , theta_0 , road.k );
 
 %% plot road
 % 
-figure(1)
-dr.sdraw = 0:0.001:road.len;
-[ dr.xb0 , dr.yb0 , ~ ] = curvy_road.xytheta_by_s( dr.sdraw );
-[ dr.xbl , dr.ybl , ~ ] = curvy_road.xypsi_by_snxi( [ dr.sdraw ;  road.w*ones(1,length(dr.sdraw)) ; zeros(1,length(dr.sdraw)) ]);
-[ dr.xbr , dr.ybr , ~ ] = curvy_road.xypsi_by_snxi( [ dr.sdraw ; -road.w*ones(1,length(dr.sdraw)) ; zeros(1,length(dr.sdraw)) ]);
-plot(dr.xb0,dr.yb0,'black--',dr.xbl,dr.ybl,'blue-',dr.xbr,dr.ybr,'blue-');
-axis equal;
-grid on;
-hold on;
-
-clear dr
+% figure(1)
+% dr.sdraw = 0:0.001:road.len;
+% [ dr.xb0 , dr.yb0 , ~ ] = curvy_road.xytheta_by_s( dr.sdraw );
+% [ dr.xbl , dr.ybl , ~ ] = curvy_road.xypsi_by_snxi( [ dr.sdraw ;  road.w*ones(1,length(dr.sdraw)) ; zeros(1,length(dr.sdraw)) ]);
+% [ dr.xbr , dr.ybr , ~ ] = curvy_road.xypsi_by_snxi( [ dr.sdraw ; -road.w*ones(1,length(dr.sdraw)) ; zeros(1,length(dr.sdraw)) ]);
+% plot(dr.xb0,dr.yb0,'black--',dr.xbl,dr.ybl,'blue-',dr.xbr,dr.ybr,'blue-');
+% axis equal;
+% grid on;
+% hold on;
+% 
+% clear dr
 
 %% Create vehicle data
 
 ts       = 0.005; % 200 Hz
-veh.Tsin = 7;
+veh.Tsin = 7;     % sine period
 veh.v    = 10;
 veh.s    = 0;
 veh.xi   = 0;
 veh.n    = 0;
+veh.yawrate = 0;
 t        = 0;
 
 while( veh.s(end) < road.len )
-    veh.v(end+1)   = veh.v(1) + 2*sin( 1*pi*(t(end)/veh.Tsin) );
-    veh.s(end+1)   = veh.v(end)*ts + veh.s(end);
-    veh.n(end+1)   = 1.5*sin(2*pi*(t(end)/veh.Tsin));
-    veh.xi(end+1)  = atan2( veh.n(end) - veh.n(end-1) , veh.s(end) - veh.s(end-1) ); % !!! VERIFICA
-    t(end+1)       = t(end)+ts;
+    veh.v(end+1)        = veh.v(1) + 2*sin( 1*pi*(t(end)/veh.Tsin) );
+    veh.s(end+1)        = veh.v(end)*ts + veh.s(end);
+    veh.n(end+1)        = 1.5*sin(2*pi*(t(end)/veh.Tsin));
+    veh.xi(end+1)       = atan2( veh.n(end) - veh.n(end-1) , veh.s(end) - veh.s(end-1) ); % !!! VERIFICA
+    t(end+1)            = t(end)+ts;
 end
 
 % remove outbounds (time stops one value before)
-veh.v(end)   = [];
-veh.s(end)   = [];
-veh.n(end)   = [];
-veh.xi(end)  = [];
-t(end)       = [];
+veh.v(end)       = [];
+veh.s(end)       = [];
+veh.n(end)       = [];
+veh.xi(end)      = [];
+t(end)           = [];
 
+% initial xi correction
+veh.xi(1:3) = veh.xi(4);
 
 
 % figure(1)
@@ -94,12 +97,16 @@ t(end)       = [];
 [ veh.x , veh.y , veh.psi ] = curvy_road.xypsi_by_snxi(  [ veh.s ;  veh.n ; veh.xi ] );
 % plot(veh.x,veh.y,'red');
 
+% yaw rate
+veh.yawrate    = [ 0 diff( veh.psi ) ./ ts ];
+veh.yawrate(1) = veh.yawrate(2);
+
 veh.z        = 0.4*ones( size(veh.x) );
 
 %% Magnetometer positions
 
 
-magn.s      = 30:1:39; % it determines also the number of couples of magnetometers 
+magn.s      = 30:3:46; % it determines also the number of couples of magnetometers 
 magn.line_n = [2 -2];
 magn.n      = magn.line_n'*ones(1,length(magn.s)); % use it as magn(1,:) etc
 magn.xi     = zeros(1,length(magn.s));
@@ -118,22 +125,24 @@ end
 
 magn.z      = zeros(size(magn.x));
 
-figure(1);
+% figure(1);
 
-for i = 1:magn.N
-    
-    plot(magn.x(i),magn.y(i),'blackx');
-    hold on;
-    text(magn.x(i)+1,magn.y(i),num2str(i)); % number of the magnetometer
-    
-end
+% for i = 1:magn.N
+%     
+%     plot(magn.x(i),magn.y(i),'blackx');
+%     hold on;
+%     text(magn.x(i)+1,magn.y(i),num2str(i)); % number of the magnetometer
+%     
+% end
 
 %% Magnetic quantities
 
-B_0 = [ 17 17 2 ]'*1e-06;   % Tesla
+mi_0 = 4*pi*1e-07; 
+
+B_0 = [ 17 17 2 ]'*1e-06;   % Tesla-> normalized on mi_0
 
 veh.D  = 1.01;               % reasonable value
-veh.m0 = [ -200 100 -200 ]'; % for now one dipole only
+veh.m0 = [ 100 100 100 ]'; % for now one dipole only
 
 warehouse.m_ground = zeros(length(veh.m0),length(t));                % for now only one dipole !!! add dimension
 warehouse.r_k      = zeros(length(magn.N),length(veh.m0),length(t)); % for now only one dipole !!! add dimension  
@@ -150,7 +159,7 @@ end
 %% simulate measures
 % compute measures -> simulation
 
-xTrue = zeros(9,length(t));
+xTrue = zeros(10,length(t));
 
 for k=1:length(t)
     
@@ -175,7 +184,17 @@ for k=1:length(t)
         
         rot_m          = makehgtform( 'zrotate', magn.th(j) ); % align magnetometer with the road
         
-        meas(j).z(:,k) = MagnetoMeterSensor.MMC5883MAoutput( rot_m(1:3,1:3)'*r_k , rot_m(1:3,1:3)'*m_k , rot_m(1:3,1:3)'*B_0 , D_k );  
+
+%         % noisy measures
+%         meas(j).z(:,k) = MagnetoMeterSensor.MMC5883MAoutput( rot_m(1:3,1:3)'*r_k , rot_m(1:3,1:3)'*m_k , rot_m(1:3,1:3)'*B_0 , D_k )...
+%           ./mi_0; 
+      
+        
+        
+        % no noise measures
+        meas(j).z(:,k) = MagnetoMeterSensor.MagnetometerSimulatedOutput( rot_m(1:3,1:3)'*r_k , rot_m(1:3,1:3)'*m_k , rot_m(1:3,1:3)'*B_0 , zeros(3)...
+            , D_k )...
+            ./mi_0;
         
     end
     
@@ -184,7 +203,7 @@ for k=1:length(t)
     % TEST function of the multiple sensor
     %%%%%%%%%%%%%%%%%%%%%%
     
-    X_true     = [ veh.v(k) , veh.s(k) , veh.n(k) , veh.xi(k) , veh.m0' , veh.D , veh.z(k) ]';
+    X_true     = [ veh.v(k) , veh.s(k) , veh.n(k) , veh.xi(k) , veh.yawrate(k) , veh.m0' , veh.D , veh.z(k) ]';
     
     xTrue(:,k) = X_true;
     
@@ -200,6 +219,19 @@ for k=1:length(t)
 
 end
 
+%% lowpass filtering of measure (to test)
+% 
+% [ b_butter , a_butter ] = butter( 9 , (10)/(100) , 'low' );
+% 
+% for j = 1:magn.N
+% 
+%     % noisy measures
+%     meas(j).z(1,:) = filtfilt( b_butter , a_butter , meas(j).z(1,:) );     
+%     meas(j).z(2,:) = filtfilt( b_butter , a_butter , meas(j).z(2,:) ); 
+%     meas(j).z(3,:) = filtfilt( b_butter , a_butter , meas(j).z(3,:) ); 
+% 
+% end
+
 %% plot measures/test
 
 figure(2)
@@ -213,24 +245,21 @@ for i=1:magn.N
     
 end
 
-%% filtering parameters
+%% filtering parameters and initial guesses
 
-Qinit = diag( [ 5     , 5   , 2   , 0.01    , 500 , 500 , 500 , 0.1 , 0.1  ].^2 ); % Error on initial conditions
-Q     = diag( [ 1*ts , 0.1 , 0.1 ,   0.5*ts  , 50 , 50 , 50 , 0.1 , 0.01 ].^2 ); % Q additive
-R     = ( 12*10^-3 ).^2*eye(magn.N*3);
-
-%% Filtering
+Qinit = diag( [ 5     , 5   , 2   , 1  , 0.2  , 500 , 500 , 500 , 0.1 , 0.1  ].^2 ); % Error on initial conditions
+Q     = diag( ( ts*[  1 , 0.01 , 0.01 ,  0.01 , 0.1  , 50 , 50 , 50 , 0.1 , 0.01 ] ) .^2 ); % Q additive
+R     = ( 10^-6 * (1/mi_0) ).^2*eye(magn.N*3);
 
 % filtering only around the magnetometer region
 rng_flt = find( veh.s > ( min(magn.s) +0 ) & veh.s < ( max(magn.s) +5 ) );
 
 
-% DEBUG QUANTITIES !!!
-sample_of_a_sampling    = zeros(2,9,length( rng_flt )); % contains diagonl elements of the samples
-the_values_of_a_warrior = zeros(9,length( rng_flt ));   % eigenvalues of prediction covariance.
-
 % initial states:
-x_init = [ 10 , ( min(magn.s) -0 + 0.1*randn(1) ) , 1 , 0 ,  -150 , 80 , -150 , 1 , 0.3 ];
+x_init = [ 10 , ( min(magn.s) -0 + 0.5*randn(1) ) , 1 , 0 , 0 ,  -150 , 180 , -100 , 1 , 0.3 ];
+
+% exact dipole !!!
+x_init(6:8) = veh.m0.*[ 0.8 2 1 ]';
 
 n_x = length(x_init);
 n_z = magn.N*3;
@@ -245,7 +274,34 @@ xRes   = zeros(n_x,length(rng_flt));
 zPred  = zeros(n_z,length(rng_flt));
 xPred  = zeros(n_x,length(rng_flt));
 
+%% filtering
+
 disp('filtering')
+
+figure(1)
+
+for i = 1:magn.N
+    
+    plot(magn.x(i),magn.y(i),'blackx');
+    hold on;
+    text(magn.x(i)+1,magn.y(i),num2str(i)); % number of the magnetometer
+    
+end
+
+dr.sdraw = 0:0.001:road.len;
+[ dr.xb0 , dr.yb0 , ~ ] = curvy_road.xytheta_by_s( dr.sdraw );
+[ dr.xbl , dr.ybl , ~ ] = curvy_road.xypsi_by_snxi( [ dr.sdraw ;  road.w*ones(1,length(dr.sdraw)) ; zeros(1,length(dr.sdraw)) ]);
+[ dr.xbr , dr.ybr , ~ ] = curvy_road.xypsi_by_snxi( [ dr.sdraw ; -road.w*ones(1,length(dr.sdraw)) ; zeros(1,length(dr.sdraw)) ]);
+plot(dr.xb0,dr.yb0,'black--',dr.xbl,dr.ybl,'blue-',dr.xbr,dr.ybr,'blue-');
+plot(veh.x,veh.y,'blue:','LineWidth',2); % traj
+axis equal;
+grid on;
+hold on;
+
+pop_pred = plot([1],'bluex');
+pop_corr = plot([1],'redx');
+pop_true = plot([1],'greenx');
+
 
 for k=1:length(rng_flt)
    
@@ -266,7 +322,7 @@ for k=1:length(rng_flt)
     params.s0  = tmp(:)';
     params.n0  = magn.n(:)';
     params.z0  = zeros(1,magn.N);
-    params.th0 = magn.th(:)'; % this come from the knowledge of the curvilinear coordinates !!! (in the reality it can be estimated from B_0)
+    params.th0 = magn.th(:)';
     params.B0  = B_0;
     % CHANGING PARAMETERS
     params.k   = curvy_road.get_k_from_s( x(2) );
@@ -275,7 +331,7 @@ for k=1:length(rng_flt)
 
     % UKF %%%%%%
     %%%%%%%%%%%%
-    [x, xpred , P , Ppred , export ]  = UKF_AN_step( @Kinematic_vehicle1 , x , P , @H_magnetometers_4_UKF , z , Q , R , params );
+    [x, xpred , P , Ppred , export ]  = UKF_AN_step( @Kinematic_vehicle2 , x , P , @H_magnetometers_4_UKF , z , Q , R , params );
     %%%%%%%%%%%%
 
     % DEBUG prediction only
@@ -293,6 +349,23 @@ for k=1:length(rng_flt)
     zPred(:,k)  = export.zPred;                 % save zPred
     xRes(:,k)   = export.xRes;
     xPred(:,k)  = xpred;
+    
+    figure(1)
+    
+%     [ xxp , yyp , ~ ] = curvy_road.xypsi_by_snxi( [ xPred(2,k) ; xPred(3,k) ; xPred(4,k) ]); 
+%     set(pop_pred,'XData',xxp,'YData',yyp);
+%     %axis([ (min(magn.x)-5) (max(magn.x)+5) (min(magn.y)-5) (max(magn.y)+5)  ]); 
+%     
+%     [ xxe , yye , ~ ] = curvy_road.xypsi_by_snxi( [ xV(2,k) ; xV(3,k) ; xV(4,k) ] ); 
+%     set(pop_corr,'XData',xxe,'YData',yye);
+%     %axis([ (min(magn.x)-5) (max(magn.x)+5) (min(magn.y)-5) (max(magn.y)+5)  ]); 
+% 
+%     set(pop_true,'XData',veh.x(true_index),'YData',veh.y(true_index));
+%     %axis([ (min(magn.x)-5) (max(magn.x)+5) (min(magn.y)-5) (max(magn.y)+5)  ]); 
+% pause(ts);
+
+
+
   
 end
 
@@ -323,71 +396,61 @@ hold off;
 %axis([ (min(magn.x)-5) (max(magn.x)+5) (min(magn.y)-5) (max(magn.y)+5)  ]); 
 grid minor;
 
-%%
-figure(3)
-subplot(1,2,1)
-plot( [ veh.xi(rng_flt) ; xV( 4 , : ) ]' );
-legend('true xi','estimation xi')
-subplot(1,2,2)
-plot( [ veh.n(rng_flt) ; xV( 3 , : ) ]' );
-legend('true n','estimation n')
+% %%
+% figure(3)
+% subplot(1,2,1)
+% plot( [ veh.xi(rng_flt) ; xV( 4 , : ) ]' );
+% legend('true xi','estimation xi')
+% subplot(1,2,2)
+% plot( [ veh.n(rng_flt) ; xV( 3 , : ) ]' );
+% legend('true n','estimation n')
+% 
+% grid minor;
+% 
+% %% Other elaboraions
+% 
+% % how the Kalman gain ( line of the angle ) evolves...
+% 
+% % columns the lines of xi
+% 
+% for i=1:length(rng_flt)
+%     columns_of_kV_of_xi(:,i) = kV{i}(:,4);
+% end
+% 
+% figure(4)
+% yyaxis right
+% plot( vecnorm(columns_of_kV_of_xi) );
+% set(gca, 'YScale', 'log')
+% yyaxis left
+% plot( [ veh.xi(rng_flt) ; xV( 4 , : ) ]' );
+% legend('true','estimate')
+% 
+% title('Norm of column vector of the xi-column of Kalman gain')
+% xlabel('samples')
+% hold off;
+% 
+% 
+% 
+% 
+% for i=1:length(rng_flt)
+%     columns_of_kV_of_xi(:,i) = kV{i}(:,3);
+% end
+% 
+% figure(5)
+% yyaxis right
+% plot( vecnorm(columns_of_kV_of_xi) );
+% set(gca, 'YScale', 'log')
+% yyaxis left
+% plot( [ veh.n(rng_flt) ; xV( 3 , : ) ]' );
+% legend('true','estimate')
+% 
+% title('Norm of column vector of the n-column of Kalman gain')
+% xlabel('samples')
+% hold off;
 
-grid minor;
+%% save data for the GUI
 
-%% Other elaboraions
-
-% how the Kalman gain ( line of the angle ) evolves...
-
-% columns the lines of xi
-
-for i=1:length(rng_flt)
-    columns_of_kV_of_xi(:,i) = kV{i}(:,4);
-end
-
-figure(4)
-yyaxis right
-plot( vecnorm(columns_of_kV_of_xi) );
-set(gca, 'YScale', 'log')
-yyaxis left
-plot( [ veh.xi(rng_flt) ; xV( 4 , : ) ]' );
-legend('true','estimate')
-
-title('Norm of column vector of the xi-column of Kalman gain')
-xlabel('samples')
-hold off;
-
-
-
-
-for i=1:length(rng_flt)
-    columns_of_kV_of_xi(:,i) = kV{i}(:,3);
-end
-
-figure(5)
-yyaxis right
-plot( vecnorm(columns_of_kV_of_xi) );
-set(gca, 'YScale', 'log')
-yyaxis left
-plot( [ veh.n(rng_flt) ; xV( 3 , : ) ]' );
-legend('true','estimate')
-
-title('Norm of column vector of the n-column of Kalman gain')
-xlabel('samples')
-hold off;
-
-%% other analisys
-
-state_examined = 8;
-
-angle_diff_pred = xTrue(state_examined,rng_flt) - xPred(state_examined,:);
-angle_diff_corr = xTrue(state_examined,rng_flt) - xV(state_examined,:);
-grid minor
-
-figure(6)
-plot( [angle_diff_pred; angle_diff_corr]' );
-legend([ 'error of state: ' num2str(state_examined) ' in prediction' ],[ 'error of state: ' num2str(state_examined) ' in estimation' ]);
-
-
+save('data_for_vis')
 
 
 

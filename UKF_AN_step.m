@@ -78,6 +78,8 @@ function [ x , x_pred , P , P_pred , export ] = UKF_AN_step( fstate , x , P , hm
     x   = x1 + K*(z-z1);                                % state update
 
     P   = P1-K*P12';                                    % covariance update
+    
+end
 
 function [ y , Y , P , Y1 ] = ut( f , X , Wm , Wc , n , R , params )
 
@@ -111,12 +113,21 @@ function [ y , Y , P , Y1 ] = ut( f , X , Wm , Wc , n , R , params )
 
     end
     
-    %y = Y(:,1); % !!! FIXED mean -> NOT UT mean !!! PROBLEM
-    %y = mean(Y(:,2:end),2);
+%     y = Y(:,1); % !!! FIXED mean -> NOT UT mean !!! PROBLEM
+%     y = mean(Y(:,2:end),2);
+    
 
     Y1 = Y - y(:)*ones(1,L);          % create vector L times the vector y
+    
+    P = R;
+    
+    for i = 1:L % covariance (the first is only zeros since is y-y, it does not count)
+        P = P + Y1(:,i)*Y1(:,i)'.*Wc(i);
+    end
 
-    P  = Y1 * diag(Wc) * Y1' + R;     % diag( wc(1)Y1(1)^2 + R(1) ... da 1..3 % Covariance of the prediction Pk-
+    %P  = Y1 * diag(Wc) * Y1' + R;     % diag( wc(1)Y1(1)^2 + R(1) ... da 1..3 % Covariance of the prediction Pk-
+    
+end
     
 function X = sigmas(x,P,c)
     % Sigma points around reference point
@@ -133,8 +144,9 @@ function X = sigmas(x,P,c)
     
     XX_matrix = X0*ones(1,length(x)); 
     
-    X = [ X0 , XX_matrix+DD_matrix , XX_matrix - DD_matrix ];
+    X = [ X0 , XX_matrix + DD_matrix , XX_matrix - DD_matrix ];
 
+end
 
 
 

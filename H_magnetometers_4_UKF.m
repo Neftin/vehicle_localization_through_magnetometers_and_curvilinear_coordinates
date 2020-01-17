@@ -5,21 +5,36 @@ function z_meas  = H_magnetometers_4_UKF( X , params )
     N      = length(params.s0); % how many sensors?
     z_meas = zeros(3*N,1);      % vector of measurements
     
+    mi_0 = 4*pi*1e-07; 
+    
     % Unpack parameters (vectors: multiple sensors)
     s0  = params.s0;
     n0  = params.n0;
     z0  = params.z0;
-    B0  = params.B0;  % B0 has to be IN THE GROUND REFERENCE FRAME
+    B0  = params.B0./mi_0;  % B0 has to be IN THE GROUND REFERENCE FRAME -> and normaòlized on mi_0
     th0 = params.th0;
     
    
     % Unpack the state
-    s     = X(2); % second state: curvilinear abscissa
-    n     = X(3); % third state:  curvilinear ordinata
-    xi    = X(4); % fourth state: curvilinear heading
-    z     = X(9); % !!! check the number of the state it can be a source of errors
-    m_veh = X(5:7);
-    D     = X(8); % !!! check the number of the state it can be a source of errors
+    if length(X) == 10 % model 1
+        s     = X(2); % second state: curvilinear abscissa
+        n     = X(3); % third state:  curvilinear ordinata
+        xi    = X(4); % fourth state: curvilinear heading
+
+        z     = X(10); % !!! check the number of the state it can be a source of errors
+        m_veh = X(6:8);
+        D     = X(9);  % !!! check the number of the state it can be a source of errors
+    elseif length(X) == 9
+        s     = X(2); % second state: curvilinear abscissa
+        n     = X(3); % third state:  curvilinear ordinata
+        xi    = X(4); % fourth state: curvilinear heading
+
+        z     = X(9); % !!! check the number of the state it can be a source of errors
+        m_veh = X(5:7);
+        D     = X(8); % !!! check the number of the state it can be a source of errors
+    else
+        error('unmanaged dimension of the state X in the UFK')
+    end
     
     % Curvilinear rotation
     rot   = makehgtform('zrotate',xi);
@@ -78,6 +93,8 @@ function yk      = H_magnetometer( r_k , m_k , B_0 , D_k )
     % compute the matrices JM of each dipole
 
     mi_0 = 4*pi*1e-07; 
+    
+    mi_0 = 1; % NORMALIZE !!!
 
     for i = 1:d
     % computation for each 
