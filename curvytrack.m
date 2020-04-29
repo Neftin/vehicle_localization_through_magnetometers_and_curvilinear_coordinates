@@ -64,7 +64,7 @@ curvy_road = curvilinear_arcs_trajectory( road.ds , theta_0 , road.k );
 
 %% Create vehicle data
 
-ts       = 0.005; % 200 Hz
+ts       = 0.01; % 200 Hz
 veh.Tsin = 7;     % sine period
 veh.v    = 10;
 veh.s    = 0;
@@ -350,7 +350,7 @@ for k=1:length(rng_flt)
     xRes(:,k)   = export.xRes;
     xPred(:,k)  = xpred;
     
-    figure(1)
+%     figure(1)
     
 %     [ xxp , yyp , ~ ] = curvy_road.xypsi_by_snxi( [ xPred(2,k) ; xPred(3,k) ; xPred(4,k) ]); 
 %     set(pop_pred,'XData',xxp,'YData',yyp);
@@ -384,7 +384,7 @@ grid on;
 hold on;
 
 figure(1)
-decimation = 20;
+decimation = 1;
 [ final_traj.x , final_traj.y , final_traj.th ] = curvy_road.xypsi_by_snxi( xV(2:4,:) );
 quiver(final_traj.x(1:decimation:end),final_traj.y(1:decimation:end),1*cos(final_traj.th(1:decimation:end)),...
     1*sin(final_traj.th(1:decimation:end)),'color',[ .4 0 .2 ]);
@@ -451,6 +451,14 @@ grid minor;
 %% save data for the GUI
 
 save('data_for_vis')
+
+%% OCP approach
+
+% try to estimate the states using OCP
+
+addpath(genpath('pwd'))
+
+disp('done')
 
 
 
